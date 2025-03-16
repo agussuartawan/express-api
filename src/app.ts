@@ -1,27 +1,45 @@
 import dotenv from "dotenv";
 import express from "express";
 import { Database } from "./database/Database";
+import { HomeRoutes } from "./routes/HomeRoutes";
+import { UserRoutes } from "./routes/UserRoutes";
 
 dotenv.config();
 
-const app = express();
-const PORT = process.env.PORT || 3000;
+class App {
+    private app: express.Application;
+    private port: number;
 
-app.use(express.json());
+    constructor() {
+        this.app = express();
+        this.port = Number(process.env.PORT) || 3000;
 
-app.get("/", (req, res) => {
-  res.send("hello from express");
-});
+        this.initializeMiddlewares();
+        this.initializeRoutes();
+    }
 
-const startServer = async () => {
-  try {
-    await Database.getInstance();
-    app.listen(PORT, () => {
-      console.log(`Server is running on port ${PORT}`);
-    });
-  } catch (error) {
-    console.log("Error while trying connect to database", error);
-  }
-};
+    private initializeMiddlewares() {
+        this.app.use(express.json());
+    }
 
-startServer();
+    private initializeRoutes() {
+        const homeRoutes = new HomeRoutes();
+        const userRoutes = new UserRoutes();
+        this.app.use("/", homeRoutes.router);
+        this.app.use("/api/users", userRoutes.router);
+    }
+
+    public async start() {
+        try {
+            await Database.getInstance();
+            this.app.listen(this.port, () => {
+                console.log(`Server running on port ${this.port}`);
+            });
+        } catch (error) {
+            console.error("Error connecting to database:", error);
+        }
+    }
+}
+
+const app = new App();
+app.start();
